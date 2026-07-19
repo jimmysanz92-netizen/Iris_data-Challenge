@@ -1,0 +1,231 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: 'Stack para Prueba Tecnica - Lider de Data. Ingestion de Colocaciones (financiera)'
+
+########################################
+############### Metadata ###############
+########################################
+Metadata:
+  'AWS::CloudFormation::Interface':
+    ParameterGroups:
+      - Label:
+          default: 'General TAGs'
+        Parameters:
+          - ProjectCode
+          - ProjectName
+          - Environment
+      - Label:
+          default: 'General Settings'
+        Parameters:
+          - S3BucketTemp
+          - S3BucketCode
+          - SecretRegion
+          - SecretArn
+          - ConnectionCore
+          - DatabaseName
+          - AwsDataCatalog
+          - JdbcAthena
+          - S3OutputPath
+      - Label:
+          default: 'Colocaciones (COLOC)'
+        Parameters:
+          - WorkflowNameColoc
+          - TableNameColoc
+          - TablePathS3Coloc
+          - S3PathCodejobColoc
+          - IngestionTypeColoc
+          - ColumnDateColoc
+
+########################################
+############## Parameters ##############
+########################################
+Parameters:
+  ############## General TAGs ##############
+  ProjectCode:
+    Type: String
+    Description: 'Codigo del proyecto'
+    AllowedPattern: '^[A-Z0-9]*$'
+    Default: CL00777
+  ProjectName:
+    Type: String
+    Description: 'Nombre del proyecto'
+    AllowedPattern: '^[a-zA-Z0-9-]*$'
+    Default: DataMesh-PruebaTecnica
+  Environment:
+    Type: String
+    Description: 'Ambiente'
+    AllowedValues:
+      - DEV
+      - STG
+      - PDN
+    Default: PDN
+
+  ############## General Settings ##############
+  S3BucketTemp:
+    Type: String
+    Description: Bucket temporal de Glue
+    Default: aws-glue-assets-000000000000-us-east-1/temporary
+  S3BucketCode:
+    Type: String
+    Description: Bucket donde se almacenan los scripts de Glue
+    Default: cl00777-datamesh-gluescripts-pdn-s3
+  SecretRegion:
+    Type: String
+    Description: Region de AWS
+    Default: us-east-1
+  SecretArn:
+    Type: String
+    Description: Nombre/ARN del secreto con las credenciales del core transaccional
+    Default: CL00053-SecureMngmt-CL00777Core-PDN-Secrets
+  ConnectionCore:
+    Type: String
+    Description: Conexion Glue al core transaccional
+    Default: cl00777-datamesh-core-pdn-gl-conn
+  DatabaseName:
+    Type: String
+    Description: Base de datos del catalogo donde se escriben las tablas trusted
+    Default: cl00777_datamesh_trusted
+  AwsDataCatalog:
+    Type: String
+    Description: Catalogo de datos de AWS
+    Default: AwsDataCatalog
+  JdbcAthena:
+    Type: String
+    Description: Driver JDBC de Athena
+    Default: com.simba.athena.jdbc.Driver
+  S3OutputPath:
+    Type: String
+    Description: Ruta de resultados de Athena
+    Default: s3://aws-athena-query-results-us-east-1-000000000000/
+
+  ############## Colocaciones (COLOC) ##############
+  WorkflowNameColoc:
+    Type: String
+    Description: Nombre del workflow de ingestion de Colocaciones
+    Default: Ingestion-COLOC-Workflow
+  TableNameColoc:
+    Type: String
+    Description: Nombre de la tabla trusted de colocaciones
+    Default: colocaciones
+  TablePathS3Coloc:
+    Type: String
+    Description: Ruta S3 de la tabla de colocaciones
+    Default: s3://cl00777-datamesh-trusted-pdn-s3/core/colocaciones/
+  S3PathCodejobColoc:
+    Type: String
+    Description: Ruta del script del job de colocaciones
+    Default: core/colocaciones/CL00777-DataMesh-Colocaciones-Trusted-Job.py
+  IngestionTypeColoc:
+    Type: String
+    Description: Tipo de ingestion (History/Daily)
+    Default: Daily
+  ColumnDateColoc:
+    Type: String
+    Description: Columna de fecha para extracciones incrementales
+    Default: FEC_DESEMBOLSO
+
+########################################
+############## Resources ###############
+########################################
+Resources:
+
+  GlueJobRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${ProjectCode}-${ProjectName}-IAMRole-${Environment}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - glue.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: !Sub '${ProjectCode}-${ProjectName}-Policy-${Environment}'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - glue:*
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:ListBucket
+                  - s3:DeleteObject
+                  - secretsmanager:GetSecretValue
+                  - secretsmanager:DescribeSecret
+                  - logs:*
+                  - cloudwatch:*
+                Resource: '*'
+
+  ############### COLOC (colocaciones) ###############
+
+  GlueWorkflowColoc:
+    Type: AWS::Glue::Workflow
+    Properties:
+      Name: !Sub '${ProjectCode}-${ProjectName}-${WorkflowNameColoc}-${Environment}'
+      Description: 'Workflow de ingestion de colocaciones'
+      DefaultRunProperties:
+        secret_region: !Sub '${SecretRegion}'
+        secret_arn: !Sub '${SecretArn}'
+        db_user: 'admin'
+        db_password: 'Andes2024!'
+        ingestion_type: !Sub '${IngestionTypeColoc}'
+        database_name: !Sub '${DatabaseName}'
+        table_name: !Sub '${TableNameColoc}'
+        table_path: !Sub '${TablePathS3Coloc}'
+        column_date: !Sub '${ColumnDateColoc}'
+        aws_data_catalog: !Sub '${AwsDataCatalog}'
+      Tags:
+        fdr:general:project-code: !Ref ProjectCode
+        fdr:general:project-name: !Ref ProjectName
+        fdr:general:enviroment: !Ref Environment
+
+  GlueJobColoc:
+    Type: AWS::Glue::Jobb
+    Properties:
+      Name: !Sub '${ProjectCode}-${ProjectName}-Trusted-${TableNameColoc}-${Environment}'
+      Description: 'Job trusted de colocaciones'
+      Role: !GetAtt GlueJobRole.Arn
+      GlueVersion: "5.0"
+      Command:
+        Name: glueetl
+        PythonVersion: "3"
+        ScriptLocation: s3://cl00777-datamesh-gluescripts-dev-s3/core/colocaciones/job.py
+      ExecutionProperty:
+        MaxConcurrentRuns: 1
+      WorkerType: G.1X
+      NumberOfWorkers: 10
+      MaxCapacity: 5
+      DefaultArguments:
+        --job-language: python
+        --TempDir: !Sub 's3://${S3BucketTemp}/'
+        --enable-metrics: 'true'
+        --enable-continuous-cloudwatch-log: 'true'
+        --datalake-formats: iceberg
+      Connections:
+        Connections:
+          - !Ref ConnectionCore
+      Tags:
+        fdr:general:project-code: !Ref ProjectCode
+        fdr:general:project-name: !Ref ProjectName
+        fdr:general:environment: !Ref Environment
+
+  ColocTrigger:
+    Type: AWS::Glue::Trigger
+    Properties:
+      Name: !Sub '${ProjectCode}-${ProjectName}-${TableNameColoc}-Trigger-${Environment}'
+      Description: 'Trigger diario de colocaciones'
+      Type: ON_DEMAND
+      Schedule: cron(00 10 * * ? *)
+      StartOnCreation: true
+      Actions:
+        - JobName: !Ref GlueJobColocaciones
+      WorkflowName: !Ref GlueWorkflowColoc
+      Tags:
+        fdr:general:project-code: !Ref ProjectCode
+        fdr:general:project-name: !Ref ProjectName
+        fdr:general:environment: !Ref Environment

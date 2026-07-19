@@ -1,0 +1,5 @@
+# Extracto del sistema de conciliacion - transacciones anuladas / reversadas
+# Formato separado por | (NO es CSV). Generado: 2024-12-31
+id_transaccion|motivo|fecha_anulacion
+4|reverso_operativo|2024-01-20
+16|fraude_confirmado|2024-03-28

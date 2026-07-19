@@ -1,0 +1,24 @@
+{
+  "Parameters": {
+    "ProjectCode": "CL00777",
+    "ProjectName": "DataMesh-PruebaTecnica",
+    "Environment": "PDN",
+
+    "S3BucketTemp": "aws-glue-assets-000000000000-us-east-1/temporary",
+    "S3BucketCode": "cl00777-datamesh-gluescripts-pdn-s3",
+    "SecretRegion": "us-east-1",
+    "SecretArn": "CL00053-SecureMngmt-CL00777Core-DEV-Secrets",
+    "ConnectionCore": "cl00777-datamesh-core-pdn-gl-conn",
+    "DatabaseName": "cl00777_datamesh_trusted",
+    "AwsDataCatalog": "AwsDataCatalog",
+    "JdbcAthena": "com.simba.athena.jdbc.Driver",
+    "S3OutputPath": "s3://aws-athena-query-results-us-east-1-000000000000/",
+
+    "WorkflowNameColoc": "Ingestion-COLOC-Workflow",
+    "TableNameColoc": "colocaciones",
+    "TablePathS3Coloc": "s3://cl00777-datamesh-trusted-dev-s3/core/colocaciones/",
+    "S3PathCodejobColoc": "core/colocaciones/CL00777-DataMesh-Colocaciones-Trusted-Job.py",
+    "IngestionTypeColoc": "Daily",
+    "ColumnDateColoc": "FEC_DESEMBOLSO"
+  }
+}
