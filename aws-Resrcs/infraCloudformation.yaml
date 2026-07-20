@@ -171,8 +171,7 @@ Resources:
       DefaultRunProperties:
         secret_region: !Sub '${SecretRegion}'
         secret_arn: !Sub '${SecretArn}'
-        db_user: 'admin'
-        db_password: 'Andes2024!'
+
         ingestion_type: !Sub '${IngestionTypeColoc}'
         database_name: !Sub '${DatabaseName}'
         table_name: !Sub '${TableNameColoc}'
@@ -182,10 +181,10 @@ Resources:
       Tags:
         fdr:general:project-code: !Ref ProjectCode
         fdr:general:project-name: !Ref ProjectName
-        fdr:general:enviroment: !Ref Environment
+        fdr:general:environment: !Ref Environment
 
   GlueJobColoc:
-    Type: AWS::Glue::Jobb
+    Type: AWS::Glue::Job
     Properties:
       Name: !Sub '${ProjectCode}-${ProjectName}-Trusted-${TableNameColoc}-${Environment}'
       Description: 'Job trusted de colocaciones'
@@ -194,12 +193,12 @@ Resources:
       Command:
         Name: glueetl
         PythonVersion: "3"
-        ScriptLocation: s3://cl00777-datamesh-gluescripts-dev-s3/core/colocaciones/job.py
+        ScriptLocation: s3://cl00777-datamesh-gluescripts-pdn-s3/core/colocaciones/job.py
       ExecutionProperty:
         MaxConcurrentRuns: 1
       WorkerType: G.1X
       NumberOfWorkers: 10
-      MaxCapacity: 5
+      
       DefaultArguments:
         --job-language: python
         --TempDir: !Sub 's3://${S3BucketTemp}/'
@@ -219,11 +218,11 @@ Resources:
     Properties:
       Name: !Sub '${ProjectCode}-${ProjectName}-${TableNameColoc}-Trigger-${Environment}'
       Description: 'Trigger diario de colocaciones'
-      Type: ON_DEMAND
+      Type: SCHEDULED
       Schedule: cron(00 10 * * ? *)
       StartOnCreation: true
       Actions:
-        - JobName: !Ref GlueJobColocaciones
+        - JobName: !Ref GlueJobColoc
       WorkflowName: !Ref GlueWorkflowColoc
       Tags:
         fdr:general:project-code: !Ref ProjectCode
