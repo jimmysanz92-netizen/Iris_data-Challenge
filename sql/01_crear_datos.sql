@@ -18,8 +18,8 @@ CREATE TABLE creditos (
     id_credito          INT           PRIMARY KEY,
     id_cliente          INT,
     tipo_producto       VARCHAR(30),
-    monto_desembolsado  DECIMAL(9,2),
-    tasa_ea             DECIMAL(5,4) NOT NULL,
+    monto_desembolsado  DECIMAL(18,2),
+    tasa_ea             DECIMAL(5,4),
     plazo_meses         INT,
     fecha_desembolso    DATE,
     estado              VARCHAR(15)
@@ -67,7 +67,7 @@ INSERT INTO creditos (id_credito, id_cliente, tipo_producto, monto_desembolsado,
 (108, 7,  'Libre Inversion',  9000000, 0.30, 18,  '2024-05-08', 'Vigente'),
 (109, 2,  'Libranza',         4000000, 0.20, 12,  '2024-06-15', 'Vigente'),
 (110, 8,  'Libre Inversion',  3000000, 0.29, 12,  '2024-07-01', 'Vigente'),
-(111, 99, 'Libre Inversion',  7000000, 0.27, 12,  '2024-03-22', 'Vigente'),
+(111, 2, 'Libre Inversion',  7000000, 0.27, 12,  '2024-03-22', 'Vigente'),
 (112, 3,  'Vehiculo',        20000000, 0.15, 36,  '2024-02-18', 'Castigado');
 GO
 
