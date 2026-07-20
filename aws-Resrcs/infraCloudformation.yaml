@@ -193,7 +193,7 @@ Resources:
       Command:
         Name: glueetl
         PythonVersion: "3"
-        ScriptLocation: s3://cl00777-datamesh-gluescripts-pdn-s3/core/colocaciones/job.py
+        ScriptLocation: !Sub 's3://${S3BucketCode}/${S3PathCodejobColoc}'
       ExecutionProperty:
         MaxConcurrentRuns: 1
       WorkerType: G.1X
